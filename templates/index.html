@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d6efd">
   <title>Dynamic Social Network Friend Analyzer</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
@@ -10,80 +11,176 @@
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 </head>
 <body>
-<nav class="navbar navbar-dark bg-primary shadow-sm">
-  <div class="container-fluid px-4">
-    <span class="navbar-brand fw-semibold"><i class="fa-solid fa-share-nodes me-2"></i>Dynamic Social Network Friend Analyzer</span>
-    <span class="text-white-50 small">MS Computer Science • Dynamic Graphs</span>
+<nav class="navbar navbar-dark app-navbar">
+  <div class="container-fluid px-3 px-lg-4">
+    <div class="d-flex align-items-center gap-2 min-w-0">
+      <span class="brand-icon"><i class="fa-solid fa-share-nodes"></i></span>
+      <div class="min-w-0">
+        <div class="navbar-brand m-0 fw-semibold text-truncate">Social Network Friend Analyzer</div>
+        <div class="brand-subtitle d-none d-sm-block">Dynamic Graphs • MS Computer Science</div>
+      </div>
+    </div>
+    <span class="live-pill"><span class="live-dot"></span>Live graph</span>
   </div>
 </nav>
 
-<main class="container-fluid py-4 px-lg-4">
-  <div id="alertBox"></div>
-  <div class="row g-3 mb-3" id="stats"></div>
+<main class="app-shell container-fluid px-2 px-md-3 px-xl-4 py-2 py-lg-3">
+  <div id="stats" class="stats-grid mb-2 mb-lg-3"></div>
 
-  <div class="row g-4">
-    <div class="col-xl-3">
-      <div class="card shadow-sm mb-3">
-        <div class="card-header fw-semibold">User Management</div>
-        <div class="card-body">
-          <label class="form-label">Name</label>
-          <div class="input-group mb-3">
-            <input id="newUserName" class="form-control" placeholder="e.g., Maria Santos">
-            <button class="btn btn-primary" id="addUserBtn"><i class="fa-solid fa-user-plus"></i></button>
-          </div>
-          <label class="form-label">Remove User</label>
-          <select id="removeUser" class="form-select mb-2"></select>
-          <button class="btn btn-outline-danger w-100" id="removeUserBtn">Remove User</button>
+  <section class="workspace">
+    <aside class="panel-card controls-panel">
+      <div class="panel-heading">
+        <div>
+          <div class="eyebrow">Network controls</div>
+          <h2 class="panel-title">Manage graph</h2>
         </div>
       </div>
 
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Friendship Management</div>
-        <div class="card-body">
-          <label class="form-label">User 1</label>
-          <select id="friendA" class="form-select mb-2"></select>
-          <label class="form-label">User 2</label>
-          <select id="friendB" class="form-select mb-3"></select>
+      <ul class="nav nav-pills compact-tabs" id="manageTabs" role="tablist">
+        <li class="nav-item flex-fill" role="presentation">
+          <button class="nav-link active w-100" data-bs-toggle="pill" data-bs-target="#usersTab" type="button">
+            <i class="fa-solid fa-user me-1"></i> Users
+          </button>
+        </li>
+        <li class="nav-item flex-fill" role="presentation">
+          <button class="nav-link w-100" data-bs-toggle="pill" data-bs-target="#friendsTab" type="button">
+            <i class="fa-solid fa-link me-1"></i> Friendships
+          </button>
+        </li>
+      </ul>
+
+      <div class="tab-content flex-grow-1">
+        <div class="tab-pane fade show active" id="usersTab">
+          <div class="control-group">
+            <label class="form-label small-label" for="newUserName">Add a user</label>
+            <div class="input-group input-group-sm">
+              <input id="newUserName" class="form-control" placeholder="Enter name" autocomplete="off">
+              <button class="btn btn-primary px-3" id="addUserBtn" title="Add user">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="form-label small-label" for="removeUser">Remove a user</label>
+            <select id="removeUser" class="form-select form-select-sm"></select>
+            <button class="btn btn-outline-danger btn-sm w-100 mt-2" id="removeUserBtn">
+              <i class="fa-regular fa-trash-can me-1"></i> Remove selected user
+            </button>
+          </div>
+
+          <div class="helper-card mt-auto">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Adding or removing a user updates the graph immediately.</span>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="friendsTab">
+          <div class="control-group">
+            <label class="form-label small-label" for="friendA">First user</label>
+            <select id="friendA" class="form-select form-select-sm"></select>
+          </div>
+          <div class="control-group">
+            <label class="form-label small-label" for="friendB">Second user</label>
+            <select id="friendB" class="form-select form-select-sm"></select>
+          </div>
           <div class="d-grid gap-2">
-            <button class="btn btn-success" id="addFriendBtn"><i class="fa-solid fa-link me-1"></i>Add Friendship</button>
-            <button class="btn btn-outline-danger" id="removeFriendBtn"><i class="fa-solid fa-link-slash me-1"></i>Remove Friendship</button>
+            <button class="btn btn-success btn-sm" id="addFriendBtn">
+              <i class="fa-solid fa-link me-1"></i> Add friendship
+            </button>
+            <button class="btn btn-outline-danger btn-sm" id="removeFriendBtn">
+              <i class="fa-solid fa-link-slash me-1"></i> Remove friendship
+            </button>
+          </div>
+          <div class="helper-card mt-3">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Every edge change triggers fresh graph metrics.</span>
           </div>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <div class="col-xl-6">
-      <div class="card shadow-sm h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <span class="fw-semibold">Live Dynamic Graph</span>
-          <button class="btn btn-sm btn-outline-primary" id="fitGraphBtn"><i class="fa-solid fa-expand"></i> Fit</button>
+    <section class="panel-card graph-panel">
+      <div class="panel-heading graph-heading">
+        <div>
+          <div class="eyebrow">Visualization</div>
+          <h2 class="panel-title">Live dynamic graph</h2>
         </div>
-        <div class="card-body p-2"><div id="network"></div></div>
-      </div>
-    </div>
-
-    <div class="col-xl-3">
-      <div class="card shadow-sm mb-3">
-        <div class="card-header fw-semibold">Graph Analysis</div>
-        <div class="card-body">
-          <label class="form-label">Person A</label>
-          <select id="analysisA" class="form-select mb-2"></select>
-          <label class="form-label">Person B</label>
-          <select id="analysisB" class="form-select mb-3"></select>
-          <div class="d-grid gap-2">
-            <button class="btn btn-primary" id="pathBtn">Shortest Connection (BFS)</button>
-            <button class="btn btn-outline-primary" id="mutualBtn">Mutual Friends</button>
-            <button class="btn btn-outline-secondary" id="groupsBtn">Connected Groups</button>
-          </div>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Graph controls">
+          <button class="btn btn-light border" id="resetGraphBtn" title="Clear analysis highlight">
+            <i class="fa-solid fa-rotate-left"></i><span class="d-none d-xl-inline ms-1">Reset</span>
+          </button>
+          <button class="btn btn-light border" id="fitGraphBtn" title="Fit graph to view">
+            <i class="fa-solid fa-expand"></i><span class="d-none d-xl-inline ms-1">Fit</span>
+          </button>
         </div>
       </div>
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Analysis Result</div>
-        <div class="card-body"><div id="result" class="text-muted">Choose an analysis to begin.</div></div>
+      <div class="graph-stage">
+        <div id="network"></div>
+        <div class="graph-legend">
+          <span><i class="legend-dot normal"></i>User</span>
+          <span><i class="legend-dot highlighted"></i>Analysis result</span>
+        </div>
       </div>
-    </div>
-  </div>
+    </section>
+
+    <aside class="panel-card analysis-panel">
+      <div class="panel-heading">
+        <div>
+          <div class="eyebrow">Graph algorithms</div>
+          <h2 class="panel-title">Analyze network</h2>
+        </div>
+      </div>
+
+      <div class="analysis-selectors">
+        <div>
+          <label class="form-label small-label" for="analysisA">Person A</label>
+          <select id="analysisA" class="form-select form-select-sm"></select>
+        </div>
+        <div>
+          <label class="form-label small-label" for="analysisB">Person B</label>
+          <select id="analysisB" class="form-select form-select-sm"></select>
+        </div>
+      </div>
+
+      <div class="analysis-actions">
+        <button class="btn btn-primary btn-sm" id="pathBtn">
+          <i class="fa-solid fa-route me-1"></i> Shortest path
+        </button>
+        <button class="btn btn-outline-primary btn-sm" id="mutualBtn">
+          <i class="fa-solid fa-user-group me-1"></i> Mutual friends
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" id="groupsBtn">
+          <i class="fa-solid fa-people-group me-1"></i> Groups
+        </button>
+      </div>
+
+      <div class="result-box" id="result">
+        <div class="empty-state">
+          <i class="fa-solid fa-chart-network fa-share-nodes"></i>
+          <strong>Ready to analyze</strong>
+          <span>Select two people and choose an algorithm.</span>
+        </div>
+      </div>
+
+      <div class="algorithm-note">
+        <span class="badge text-bg-light border">BFS</span>
+        <span>Shortest connection uses breadth-first search on the current graph.</span>
+      </div>
+    </aside>
+  </section>
 </main>
+
+<div class="toast-container position-fixed top-0 end-0 p-3">
+  <div id="appToast" class="toast border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header">
+      <span id="toastIcon" class="toast-status me-2"></span>
+      <strong class="me-auto" id="toastTitle">Updated</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body" id="toastMessage"></div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
