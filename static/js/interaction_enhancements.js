@@ -63,22 +63,27 @@
       if (graphDragging || Date.now() < tooltipSuppressedUntil) return;
       showTooltip(params.node);
     });
+
     target.on('blurNode', () => {
       if (!graphDragging) hideTooltip();
     });
+
     target.on('dragStart', params => {
       graphDragging = true;
       hideTooltip();
-      if (params.nodes?.length) tooltipSuppressedUntil = Date.now() + 900;
+      const movingNode = Boolean(params.nodes?.length);
+      if (movingNode) {
+        tooltipSuppressedUntil = Date.now() + 1200;
+        window.graphLayoutController?.beginManualMove();
+      }
     });
+
     target.on('dragEnd', params => {
       const movedNode = Boolean(params.nodes?.length);
       graphDragging = false;
       hideTooltip();
-      tooltipSuppressedUntil = Date.now() + (movedNode ? 700 : 220);
-      if (movedNode && window.graphLayoutController) {
-        window.graphLayoutController.reflowAfterManualMove();
-      }
+      tooltipSuppressedUntil = Date.now() + (movedNode ? 800 : 220);
+      if (movedNode) window.graphLayoutController?.endManualMove();
     });
   }
 
