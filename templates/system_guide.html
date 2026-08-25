@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d6efd">
+  <title>System Guide — Social Network Friend Analyzer</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/system_guide.css') }}">
+</head>
+<body>
+<nav class="navbar navbar-dark guide-navbar">
+  <div class="container-xl px-3">
+    <div class="d-flex align-items-center gap-2 min-w-0">
+      <span class="d-grid place-items-center text-white"><i class="fa-solid fa-book-open"></i></span>
+      <div class="min-w-0">
+        <div class="navbar-brand m-0 fw-semibold text-truncate">System Guide</div>
+        <div class="guide-subtitle d-none d-sm-block">Dynamic Social Network Friend Analyzer</div>
+      </div>
+    </div>
+    <a class="guide-nav-btn" href="{{ url_for('index') }}"><i class="fa-solid fa-arrow-left"></i><span>Back to Analyzer</span></a>
+  </div>
+</nav>
+
+<header class="guide-hero">
+  <div class="container-xl px-3">
+    <div class="guide-kicker">Complete technical documentation</div>
+    <h1>How the entire system works</h1>
+    <p>This page explains the application from end to end: data storage, Flask routes, NetworkX algorithms, every JavaScript layer, graph interaction behavior, recommendation scoring, strong-group logic, activity logging, seed data, styling, testing, and Railway deployment. It is written so the system can be defended, maintained, and extended without relying on undocumented behavior.</p>
+    <div class="guide-badges">
+      <span class="guide-badge"><i class="fa-brands fa-python me-1"></i>Flask 3.1</span>
+      <span class="guide-badge"><i class="fa-solid fa-database me-1"></i>SQLite</span>
+      <span class="guide-badge"><i class="fa-solid fa-share-nodes me-1"></i>NetworkX 3.4</span>
+      <span class="guide-badge"><i class="fa-brands fa-js me-1"></i>Vanilla JavaScript</span>
+      <span class="guide-badge"><i class="fa-solid fa-circle-nodes me-1"></i>vis-network</span>
+      <span class="guide-badge"><i class="fa-brands fa-bootstrap me-1"></i>Bootstrap 5</span>
+      <span class="guide-badge"><i class="fa-solid fa-cloud me-1"></i>Railway + Gunicorn</span>
+    </div>
+  </div>
+</header>
+
+<main class="container-xl px-3 pb-4">
+  <div class="guide-layout">
+    <aside class="guide-sidebar">
+      <div class="guide-search"><i class="fa-solid fa-magnifying-glass"></i><input id="guideSearch" type="search" placeholder="Search this guide…" aria-label="Search system guide"></div>
+      <nav class="guide-toc" aria-label="Guide sections">
+        <a href="#overview"><i class="fa-solid fa-compass"></i>Overview</a>
+        <a href="#architecture"><i class="fa-solid fa-sitemap"></i>Architecture</a>
+        <a href="#repository"><i class="fa-solid fa-folder-tree"></i>Repository</a>
+        <a href="#database"><i class="fa-solid fa-database"></i>Database</a>
+        <a href="#backend"><i class="fa-solid fa-server"></i>Backend</a>
+        <a href="#api"><i class="fa-solid fa-code"></i>API</a>
+        <a href="#algorithms"><i class="fa-solid fa-diagram-project"></i>Algorithms</a>
+        <a href="#recommendations"><i class="fa-solid fa-user-plus"></i>Suggestions</a>
+        <a href="#groups"><i class="fa-solid fa-people-group"></i>Strong Groups</a>
+        <a href="#frontend"><i class="fa-solid fa-window-maximize"></i>UI</a>
+        <a href="#javascript"><i class="fa-brands fa-js"></i>JavaScript</a>
+        <a href="#interactions"><i class="fa-solid fa-hand-pointer"></i>Interactions</a>
+        <a href="#visuals"><i class="fa-solid fa-palette"></i>Graph Visuals</a>
+        <a href="#activity"><i class="fa-solid fa-clock-rotate-left"></i>Activity Log</a>
+        <a href="#seed"><i class="fa-solid fa-users"></i>Seed Data</a>
+        <a href="#validation"><i class="fa-solid fa-shield-halved"></i>Validation</a>
+        <a href="#testing"><i class="fa-solid fa-vial"></i>Testing</a>
+        <a href="#deployment"><i class="fa-solid fa-cloud-arrow-up"></i>Deployment</a>
+        <a href="#performance"><i class="fa-solid fa-gauge-high"></i>Complexity</a>
+        <a href="#limitations"><i class="fa-solid fa-triangle-exclamation"></i>Limitations</a>
+        <a href="#defense"><i class="fa-solid fa-person-chalkboard"></i>Defense Guide</a>
+        <a href="#glossary"><i class="fa-solid fa-book"></i>Glossary</a>
+      </nav>
+    </aside>
+
+    <div class="guide-content">
+      <div id="guideSearchEmpty" class="search-empty"><i class="fa-solid fa-magnifying-glass mb-2"></i><div>No guide section matches that search.</div></div>
+
+      <section class="guide-section" id="overview" data-search="overview purpose dynamic graph social network features">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-compass"></i></div><div><h2>1. System overview</h2><div class="guide-section-intro">What the project is, what changes dynamically, and what it intentionally does not try to be.</div></div></div>
+        <p>The application models a social network as an undirected dynamic graph <strong>G = (V, E)</strong>. Each person is a vertex/node. Each accepted friendship is an undirected edge. Profile metadata such as age group, hometown, occupation, bio, and interests belongs to the node. Adding/removing users or friendships changes the graph topology; editing profile data changes metadata and may change recommendation scores without directly changing topology.</p>
+        <div class="guide-grid three">
+          <div class="guide-card"><div class="guide-card-title">Vertices (V)</div><p>People with names and profile metadata.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Edges (E)</div><p>Accepted friendships. Friendship direction does not matter.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Candidate edges</div><p>Dashed suggestion lines computed from similarity but not yet real friendships.</p></div>
+        </div>
+        <h3>Core capabilities</h3>
+        <ul>
+          <li>Create, edit, inspect, and remove profiles.</li><li>Add/remove friendships through controls, suggestion cards, or long-press graph gestures.</li><li>Visualize the live graph and inspect profile information by hover.</li><li>Run shortest-path, mutual-friend, strong-group, density, degree-centrality, and recommendation analysis.</li><li>Search for a person, focus a neighborhood, manually rearrange the graph, and preserve visual context during selection.</li><li>Persist recent data-changing activity in SQLite and show it in the Activity drawer.</li>
+        </ul>
+        <div class="callout"><i class="fa-solid fa-circle-info"></i><div><strong>Academic scope:</strong> this is a dynamic-graphs and social-network-analysis application, not a production social-media platform. Authentication, posts, private messaging, media uploads, and external social APIs are outside the current scope.</div></div>
+      </section>
+
+      <section class="guide-section" id="architecture" data-search="architecture request flow browser flask sqlite networkx vis-network bootstrap gunicorn">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-sitemap"></i></div><div><h2>2. Architecture and data flow</h2><div class="guide-section-intro">How a browser action becomes a database mutation and then a graph update.</div></div></div>
+        <div class="flow">
+          <div class="flow-step"><strong>Browser UI</strong><span>HTML + Bootstrap controls + vis-network graph</span></div><div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          <div class="flow-step"><strong>JavaScript</strong><span>Calls REST endpoints and updates visual state</span></div><div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          <div class="flow-step"><strong>Flask API</strong><span>Validates requests and reads/writes SQLite</span></div><div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          <div class="flow-step"><strong>SQLite</strong><span>Profiles, friendships, interests, metadata, logs</span></div><div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          <div class="flow-step"><strong>NetworkX</strong><span>Rebuilds graph and calculates graph analyses</span></div>
+        </div>
+        <h3>Example: adding a friendship</h3>
+        <ol><li>The UI sends <code>POST /api/friendships</code> with two user IDs.</li><li>Flask validates both users, prevents self-friendship, sorts IDs, and inserts the edge.</li><li>The activity wrapper records the successful connection.</li><li>The browser refreshes graph data and summary metrics.</li><li>All future paths, mutual-friend results, degree values, strong groups, density, and suggestions can change because <strong>E</strong> changed.</li></ol>
+        <h3>Runtime entrypoint</h3>
+        <p>Production starts <code>activity_entry:app</code>. That module imports the Flask application from <code>app.py</code>, installs persistent activity logging, and exposes the same Flask app to Gunicorn. The Docker/Procfile startup also runs the seed migration before starting Gunicorn.</p>
+      </section>
+
+      <section class="guide-section" id="repository" data-search="repository files app.py activity_entry activity_log seed data css javascript templates docker procfile tests readme">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-folder-tree"></i></div><div><h2>3. Repository map</h2><div class="guide-section-intro">Every major file and why it exists.</div></div></div>
+        <div class="file-list">
+          <div class="file-row"><div class="file-path">app.py</div><div class="file-desc">Main Flask application: SQLite schema migration, profile CRUD, friendship CRUD, graph building, NetworkX analyses, recommendation API, and main page route.</div></div>
+          <div class="file-row"><div class="file-path">activity_entry.py</div><div class="file-desc">Production entrypoint. Imports <code>app</code>, installs activity logging, and registers this System Guide route.</div></div>
+          <div class="file-row"><div class="file-path">activity_log.py</div><div class="file-desc">Creates the activity_log table, wraps successful mutation routes, computes profile differences, stores human-readable history, and exposes <code>/api/activities</code>.</div></div>
+          <div class="file-row"><div class="file-path">seed_data.py</div><div class="file-desc">Versioned additive seed migration containing 50 fictional profiles, normalized interests, sample friendships, schema checks, and <code>app_meta</code> seed-version tracking.</div></div>
+          <div class="file-row"><div class="file-path">templates/index.html</div><div class="file-desc">Primary one-page analyzer layout: statistics, profile/friendship controls, graph area, analysis area, profile modal, toast container, and script load order.</div></div>
+          <div class="file-row"><div class="file-path">templates/system_guide.html</div><div class="file-desc">This documentation page.</div></div>
+          <div class="file-row"><div class="file-path">static/js/app.js</div><div class="file-desc">Core client state, REST helper, graph rendering, profile CRUD UI, friendship controls, graph analysis UI, suggestions, tooltips, focus/reset/fit, and initial load.</div></div>
+          <div class="file-row"><div class="file-path">static/js/graph_extras.js</div><div class="file-desc">Bridge-aware strong communities, Find User control, restrained search focus/zoom, and dashboard strong-group override.</div></div>
+          <div class="file-row"><div class="file-path">static/js/layout_lock.js</div><div class="file-desc">Controls graph physics. Selection remains stable; manual dragging turns physics on live, lets the network settle briefly, then freezes positions again.</div></div>
+          <div class="file-row"><div class="file-path">static/js/long_press_connect.js</div><div class="file-desc">Captures the previously selected person and uses vis-network hold/long-press to toggle friendship with the held person.</div></div>
+          <div class="file-row"><div class="file-path">static/js/interaction_enhancements.js</div><div class="file-desc">Suggested-node highlighting, suggestion visibility in Focus mode, tooltip suppression during drag, and live manual-movement hooks.</div></div>
+          <div class="file-row"><div class="file-path">static/js/activity_log_ui.js</div><div class="file-desc">Creates the Activity button/offcanvas drawer and loads recent activity from the backend.</div></div>
+          <div class="file-row"><div class="file-path">static/js/system_guide.js</div><div class="file-desc">Searches this guide, maintains active table-of-contents state, and supports expandable documentation details.</div></div>
+          <div class="file-row"><div class="file-path">static/css/style.css</div><div class="file-desc">Main compact dashboard layout, graph styling, profile cards, analysis results, tooltip styles, and responsive breakpoints.</div></div>
+          <div class="file-row"><div class="file-path">static/css/graph_extras.css</div><div class="file-desc">Find User and strong-group UI styling.</div></div>
+          <div class="file-row"><div class="file-path">static/css/activity_log.css</div><div class="file-desc">Activity button and history drawer styling.</div></div>
+          <div class="file-row"><div class="file-path">static/css/system_guide.css</div><div class="file-desc">Documentation-page layout and responsive styles.</div></div>
+          <div class="file-row"><div class="file-path">test_app.py</div><div class="file-desc">Unit/API tests for seed graph behavior, profile fields/interests, friendships, paths, mutual friends, and recommendation exclusion.</div></div>
+          <div class="file-row"><div class="file-path">requirements.txt</div><div class="file-desc">Pinned Python runtime dependencies: Flask 3.1.0, NetworkX 3.4.2, Gunicorn 23.0.0.</div></div>
+          <div class="file-row"><div class="file-path">Dockerfile / Procfile</div><div class="file-desc">Production startup. Runs seed_data.py, then Gunicorn on <code>0.0.0.0:$PORT</code> using <code>activity_entry:app</code>.</div></div>
+          <div class="file-row"><div class="file-path">README.md / .gitignore</div><div class="file-desc">Project summary/setup notes and ignored local files such as generated SQLite data.</div></div>
+        </div>
+      </section>
+
+      <section class="guide-section" id="database" data-search="database sqlite users friendships interests user_interests app_meta activity_log schema foreign keys cascade">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-database"></i></div><div><h2>4. SQLite data model</h2><div class="guide-section-intro">The persistent structures behind nodes, edges, interests, migration state, and history.</div></div></div>
+        <div class="table-wrap"><table class="guide-table"><thead><tr><th>Table</th><th>Important columns</th><th>Role</th></tr></thead><tbody>
+          <tr><td><code>users</code></td><td>id, name, age_group, hometown, occupation, bio, created_at</td><td>One record per graph vertex/person. Name is case-insensitively unique.</td></tr>
+          <tr><td><code>friendships</code></td><td>id, user1_id, user2_id, created_at</td><td>Undirected graph edges. Constraint requires <code>user1_id &lt; user2_id</code> and the pair is unique.</td></tr>
+          <tr><td><code>interests</code></td><td>id, name</td><td>Normalized shared interest vocabulary; names are case-insensitively unique.</td></tr>
+          <tr><td><code>user_interests</code></td><td>user_id, interest_id</td><td>Many-to-many junction between people and interests.</td></tr>
+          <tr><td><code>app_meta</code></td><td>key, value</td><td>Used by seed_data.py to remember the sample dataset version.</td></tr>
+          <tr><td><code>activity_log</code></td><td>id, action_type, message, metadata, created_at</td><td>Persistent recent mutation history. Capped to the newest 300 records.</td></tr>
+        </tbody></table></div>
+        <h3>Referential integrity</h3><p>Every SQLite connection enables <code>PRAGMA foreign_keys = ON</code>. Deleting a user cascades to friendship and user-interest records. This prevents orphaned edges and interest mappings.</p>
+        <h3>Profile migration</h3><p>The database initialization code checks existing <code>users</code> columns using <code>PRAGMA table_info(users)</code>. If age group, hometown, occupation, or bio is missing from an older database, it adds that column with <code>ALTER TABLE</code>. This lets older deployments migrate forward without discarding data.</p>
+        <h3>Interest normalization</h3><p>Interests are trimmed, de-duplicated case-insensitively, limited to 40 characters each, and capped at 12 per profile. The user stores references to interest rows rather than repeating interest strings in every profile.</p>
+      </section>
+
+      <section class="guide-section" id="backend" data-search="backend flask functions db clean_text normalize_interests set_user_interests serialize build_graph init_db">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-server"></i></div><div><h2>5. Flask backend internals</h2><div class="guide-section-intro">Core helper functions and what each one contributes.</div></div></div>
+        <div class="guide-grid">
+          <div class="guide-card"><div class="guide-card-title"><code>db()</code></div><p>Opens SQLite using DB_PATH, returns Row objects, enables foreign keys.</p></div>
+          <div class="guide-card"><div class="guide-card-title"><code>clean_text()</code></div><p>Converts nullable values to trimmed strings and enforces field length limits.</p></div>
+          <div class="guide-card"><div class="guide-card-title"><code>normalize_interests()</code></div><p>Accepts comma text or a list, removes duplicates, and caps interest count/length.</p></div>
+          <div class="guide-card"><div class="guide-card-title"><code>set_user_interests()</code></div><p>Replaces a user's junction rows, creates missing normalized interests, removes unused global interest rows.</p></div>
+          <div class="guide-card"><div class="guide-card-title"><code>interests_for_user()</code></div><p>Joins user_interests and interests and returns alphabetically ordered names.</p></div>
+          <div class="guide-card"><div class="guide-card-title"><code>serialize_user()</code></div><p>Produces the profile JSON shape used by the client, including the resolved interest list.</p></div>
+          <div class="guide-card"><div class="guide-card-title"><code>init_db()</code></div><p>Creates tables, migrates old user columns, and keeps the legacy eight-profile fallback for an empty app database.</p></div>
+          <div class="guide-card"><div class="guide-card-title"><code>build_graph()</code></div><p>Reconstructs a fresh <code>nx.Graph()</code> from current users and friendship rows for each analysis request.</p></div>
+        </div>
+        <div class="callout warning"><i class="fa-solid fa-lightbulb"></i><div><strong>Two seed layers exist:</strong> <code>app.py</code> still contains the original eight-person empty-database seed fallback, while production startup first runs <code>seed_data.py</code>, whose versioned additive migration expands the deployed dataset to 50 sample people. The production seeder therefore normally runs before <code>init_db()</code> needs its legacy fallback.</div></div>
+      </section>
+
+      <section class="guide-section" id="api" data-search="api endpoints graph users friendships summary mutual path components suggestions activities methods get post put delete">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-code"></i></div><div><h2>6. Complete API reference</h2><div class="guide-section-intro">Routes called by the browser and the data-changing rules behind them.</div></div></div>
+        <div class="table-wrap"><table class="guide-table"><thead><tr><th>Method</th><th>Endpoint</th><th>Purpose / behavior</th></tr></thead><tbody>
+          <tr><td>GET</td><td><code>/</code></td><td>Renders the analyzer page.</td></tr>
+          <tr><td>GET</td><td><code>/system-guide</code></td><td>Renders this documentation page through the production entry module.</td></tr>
+          <tr><td>GET</td><td><code>/api/graph</code></td><td>Returns nodes with degree/profile tooltip data and all real friendship edges.</td></tr>
+          <tr><td>GET</td><td><code>/api/users</code></td><td>Returns all serialized profiles ordered by name.</td></tr>
+          <tr><td>GET</td><td><code>/api/users/&lt;id&gt;</code></td><td>Returns one profile or 404.</td></tr>
+          <tr><td>POST</td><td><code>/api/users</code></td><td>Creates a profile. Name is required; duplicate case-insensitive names return 409.</td></tr>
+          <tr><td>PUT</td><td><code>/api/users/&lt;id&gt;</code></td><td>Replaces editable profile fields and normalized interests.</td></tr>
+          <tr><td>DELETE</td><td><code>/api/users/&lt;id&gt;</code></td><td>Deletes profile; cascading foreign keys delete associated friendships/interests mappings.</td></tr>
+          <tr><td>POST</td><td><code>/api/friendships</code></td><td>Creates an undirected friendship after sorting IDs; rejects same-person and duplicate edges.</td></tr>
+          <tr><td>DELETE</td><td><code>/api/friendships</code></td><td>Deletes the sorted friendship pair; returns <code>{ok: true/false}</code>.</td></tr>
+          <tr><td>GET</td><td><code>/api/analysis/summary</code></td><td>Users, real friendship count, raw connected-component count, graph density, and max-degree user(s).</td></tr>
+          <tr><td>GET</td><td><code>/api/analysis/mutual/&lt;a&gt;/&lt;b&gt;</code></td><td>Common direct neighbors of two people.</td></tr>
+          <tr><td>GET</td><td><code>/api/analysis/path/&lt;a&gt;/&lt;b&gt;</code></td><td>Unweighted shortest friendship path and degrees of separation.</td></tr>
+          <tr><td>GET</td><td><code>/api/analysis/components</code></td><td>Raw NetworkX connected components. The UI Groups button is later replaced by bridge-aware strong groups.</td></tr>
+          <tr><td>GET</td><td><code>/api/analysis/suggestions/&lt;id&gt;</code></td><td>Returns up to six non-friend candidates ranked by hybrid recommendation score.</td></tr>
+          <tr><td>GET</td><td><code>/api/activities?limit=N</code></td><td>Recent logged mutations. N is clamped between 1 and 100; UI requests 60.</td></tr>
+        </tbody></table></div>
+        <h3>Common HTTP errors</h3><ul><li><strong>400</strong>: missing name, invalid users, self-friendship, or invalid pair.</li><li><strong>404</strong>: requested user does not exist.</li><li><strong>409</strong>: duplicate user name or duplicate friendship.</li></ul>
+      </section>
+
+      <section class="guide-section" id="algorithms" data-search="algorithms bfs shortest path mutual friends degree centrality density connected components graph">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-diagram-project"></i></div><div><h2>7. Graph algorithms</h2><div class="guide-section-intro">The analyses that operate on the current dynamic graph.</div></div></div>
+        <h3>Shortest connection</h3><p><code>nx.shortest_path()</code> is run on an unweighted undirected graph. In this context it has BFS-style shortest-hop behavior: each friendship costs one hop. The client highlights every node and edge in the returned path and reports <code>len(path)-1</code> degrees of separation.</p>
+        <h3>Mutual friends</h3><p><code>nx.common_neighbors(g, a, b)</code> finds people directly connected to both selected users. The result is sorted by name and highlighted as nodes.</p>
+        <h3>Most connected user</h3><p>Degree is the number of real friendship edges touching a node. The summary calculates all degrees and returns every user tied for maximum degree. This is degree centrality in its raw degree-count form.</p>
+        <h3>Density</h3><div class="formula">density = 2|E| / (|V|(|V| - 1))</div><p>For an undirected simple graph, density describes the fraction of all possible friendship edges that currently exist. Dashed recommendation edges are never included.</p>
+        <h3>Raw connected components</h3><p>The backend can calculate ordinary connected components: if any path exists between two people, they belong to the same component. This raw definition is useful for reachability, but it is intentionally not the final UI definition of a social group.</p>
+      </section>
+
+      <section class="guide-section" id="recommendations" data-search="friend recommendation suggestion score jaccard interests mutual hometown age group dashed candidate edges top 3 top 6">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-user-plus"></i></div><div><h2>8. Friend recommendation model</h2><div class="guide-section-intro">How profile similarity and graph topology become proposed edges.</div></div></div>
+        <div class="formula">Score = 60×Jaccard Interests + 20×Mutual-Friend Signal + 10×Same Hometown + 10×Same Age Group</div>
+        <h3>Interest similarity</h3><div class="formula">J(A,B) = |A ∩ B| / |A ∪ B|</div><p>Case-insensitive interest sets are compared with Jaccard similarity. If both users have no interests, this component is zero.</p>
+        <h3>Mutual-friend signal</h3><p>Common neighbors contribute up to 20 points. It is capped at three mutual friends: <code>min(mutual_count, 3) / 3 × 20</code>.</p>
+        <h3>Candidate filtering</h3><ul><li>The selected user is excluded.</li><li>Existing friends are excluded.</li><li>Candidates with a final score of zero are excluded.</li><li>The backend returns the top six; the graph draws only the top three to limit clutter.</li></ul>
+        <h3>Graph representation</h3><p>A recommendation is not a real edge. The graph draws it as a subtle dashed line and gives the suggested person a very light green treatment. Accepting the suggestion or long-pressing that person creates a real friendship row, removes the candidate status, and changes the topology.</p>
+      </section>
+
+      <section class="guide-section" id="groups" data-search="groups strong groups bridges bridge-aware tarjan low-link communities connected components">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-people-group"></i></div><div><h2>9. Strong social groups and bridge handling</h2><div class="guide-section-intro">Why one cross-group friendship does not collapse two communities into one.</div></div></div>
+        <p>The final Groups UI uses a bridge-aware definition. A <strong>bridge</strong> is an edge whose removal increases the number of connected components. If two dense friendship communities are connected only through one such friendship, they remain separate strong groups for presentation purposes.</p>
+        <div class="code-block">Group A:  A — B — C — D
+                        |
+                    one bridge
+                        |
+Group B:  E — F — G — H</div>
+        <p>For reachability, NetworkX still sees a path from Group A to Group B. For the Groups UI, the bridge is temporarily ignored and the remaining components are reported separately.</p>
+        <h3>Algorithm used in <code>graph_extras.js</code></h3><ol><li>Create an adjacency map.</li><li>Run depth-first search and assign discovery times.</li><li>Maintain a <code>low</code> value for each node.</li><li>An edge is a bridge when <code>low(child) &gt; discovery(parent)</code>.</li><li>Traverse the graph again while skipping bridge edges.</li><li>Sort resulting groups primarily by size.</li></ol>
+        <div class="callout warning"><i class="fa-solid fa-code-branch"></i><div><strong>Important distinction:</strong> <code>/api/analysis/summary</code> still returns raw connected components. After the summary loads, <code>graph_extras.js</code> recalculates bridge-aware communities in the browser and replaces the dashboard tile label/value with <strong>Strong groups</strong>. The Groups button is also replaced with the bridge-aware UI handler.</div></div>
+      </section>
+
+      <section class="guide-section" id="frontend" data-search="frontend ui one page navbar stats profiles friendships graph analysis modal toast activity responsive">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-window-maximize"></i></div><div><h2>10. Main user interface</h2><div class="guide-section-intro">What every visible region of the analyzer does.</div></div></div>
+        <div class="guide-grid three">
+          <div class="guide-card"><div class="guide-card-title">Top statistics</div><p>Users, friendships, Strong Groups, density, most-connected user(s).</p></div>
+          <div class="guide-card"><div class="guide-card-title">Left panel</div><p>Profiles tab for CRUD and profile preview; Friendships tab for explicit edge add/remove.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Center graph</div><p>vis-network visualization, Find User, Focus, Reset, Fit, tooltip, real/suggested edge legend.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Right analysis</div><p>Person A/B selectors plus shortest path, mutual friends, suggestions, and strong groups.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Profile modal</div><p>Name, age group, hometown, occupation/role, comma-separated interests, short bio.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Global feedback</div><p>Bootstrap toast notifications and Activity offcanvas drawer.</p></div>
+        </div>
+        <h3>Responsive design</h3><p>Desktop uses a three-column workspace and suppresses page scrolling where possible. Tablets move the graph above two supporting panels. Phones stack everything vertically and allow normal page scrolling. The graph retains a usable minimum height.</p>
+      </section>
+
+      <section class="guide-section" id="javascript" data-search="javascript app.js graph_extras layout_lock long_press interaction activity load order globals wrappers monkey patch iife">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-brands fa-js"></i></div><div><h2>11. JavaScript architecture — file by file</h2><div class="guide-section-intro">The scripts deliberately load in order because later layers wrap and enhance earlier functions.</div></div></div>
+        <div class="callout"><i class="fa-solid fa-layer-group"></i><div><strong>Load order:</strong> <code>app.js</code> → <code>graph_extras.js</code> → <code>layout_lock.js</code> → <code>long_press_connect.js</code> → <code>interaction_enhancements.js</code> → <code>activity_log_ui.js</code>. Later files depend on globals/functions defined earlier and sometimes replace a function with a wrapper that calls the previous implementation.</div></div>
+
+        <h3><code>app.js</code> — core application state and behavior</h3>
+        <p>Defines shared globals including <code>network</code>, <code>nodeSet</code>, <code>edgeSet</code>, <code>users</code>, <code>graphData</code>, <code>selectedNodeId</code>, <code>focusConnectedOnly</code>, <code>activeSuggestions</code>, highlighted node/edge sets, hover/drag state, and a recommendation request token.</p>
+        <div class="function-index"><code>$()</code><code>escapeHtml()</code><code>api()</code><code>notify()</code><code>getUser()</code><code>graphNode()</code><code>edgeKey()</code><code>optionsHtml()</code><code>refreshSelects()</code><code>loadAll()</code><code>adjacencyMap()</code><code>selectedNeighborhood()</code><code>baseNodeStyle()</code><code>renderVisualState()</code><code>loadGraphData()</code><code>tooltipContent()</code><code>updateTooltipPosition()</code><code>showTooltip()</code><code>hideTooltip()</code><code>bindGraphEvents()</code><code>loadSuggestionEdges()</code><code>updateFocusButton()</code><code>clearGraphState()</code><code>loadSummary()</code><code>interestBadges()</code><code>updateProfilePreview()</code><code>openProfileModal()</code><code>friendshipAction()</code><code>beginAnalysis()</code><code>showSuggestions()</code></div>
+        <ul><li><code>api()</code> centralizes fetch, JSON parsing, and HTTP error conversion into JavaScript exceptions.</li><li><code>renderVisualState()</code> is the central visual-state renderer: node colors, hidden state, real-edge emphasis, path highlights, and initial dashed suggestion edges.</li><li><code>loadGraphData()</code> fetches <code>/api/graph</code>, builds vis DataSets, creates the vis Network, configures physics/interactions, and attaches base graph events.</li><li>Profile CRUD handlers send POST/PUT/DELETE requests, show feedback, and reload relevant state.</li><li>Analysis handlers call backend endpoints and convert results into highlighted nodes/edges plus the right-panel result cards.</li></ul>
+
+        <h3><code>graph_extras.js</code> — strong communities and Find User</h3>
+        <ul><li>Implements bridge detection with DFS discovery/low-link values.</li><li>Overrides the visible Groups result and summary tile with bridge-aware Strong Groups.</li><li>Dynamically inserts the Find User input into the graph heading.</li><li>Name matching order is exact match → starts-with match → contains match.</li><li>Search acts like selecting the user: it sets <code>selectedNodeId</code>, updates profile/Person A, renders neighborhood emphasis, loads suggestion edges, then gently focuses the camera.</li><li>Zoom is restrained: very zoomed-out views increase scale modestly toward at most 0.65; otherwise only a slight increase up to 1.0.</li></ul>
+
+        <h3><code>layout_lock.js</code> — stable selection, live drag physics</h3>
+        <ul><li>After initial stabilization, physics is disabled and positions are stored.</li><li>When visual state changes from a click/search/analysis, the current layout snapshot is captured and restored so selection itself does not rearrange the graph.</li><li><code>beginManualMove()</code> turns physics on immediately while a node is being dragged, so connected nodes/lines react live.</li><li><code>endManualMove()</code> leaves physics active for roughly 520 ms after release, then freezes the settled layout.</li><li>The camera position and scale are preserved through the manual-movement settle process.</li></ul>
+
+        <h3><code>long_press_connect.js</code> — friend/unfriend gesture</h3>
+        <ul><li>A capture-phase <code>pointerdown</code> snapshots the already-selected person before vis-network can alter its own internal selection.</li><li>The vis <code>hold</code> event treats the held node as the target.</li><li>If source and target are not friends, POST creates the edge. If they are friends, DELETE removes it.</li><li>The source person remains selected after the mutation.</li><li>A possible click fired after a hold is suppressed so the target does not unintentionally become selected.</li><li>The code refreshes graph data without recreating the vis Network, preserving the current layout.</li></ul>
+
+        <h3><code>interaction_enhancements.js</code> — graph interaction polish</h3>
+        <ul><li>Wraps <code>renderVisualState()</code> to give the top suggested nodes a very light green style.</li><li>Keeps suggested nodes and their dashed edges visible even when Focus mode hides unrelated people.</li><li>Replaces hover/drag handlers so profile tooltips disappear during dragging and remain suppressed briefly afterward.</li><li>Calls <code>graphLayoutController.beginManualMove()</code> on node drag start and <code>endManualMove()</code> on node drag end.</li></ul>
+
+        <h3><code>activity_log_ui.js</code> — history interface</h3>
+        <ul><li>Dynamically adds the Activity button next to the live indicator.</li><li>Creates a Bootstrap offcanvas drawer.</li><li>Loads <code>/api/activities?limit=60</code> when opened or manually refreshed.</li><li>Maps activity types to icons/labels and formats timestamps in the browser's local display format.</li></ul>
+
+        <h3>Why function wrapping is used</h3><p>The project evolved feature-by-feature. Enhancement scripts preserve the core <code>app.js</code> behavior while layering specialized behavior. For example, <code>layout_lock.js</code> saves the current <code>renderVisualState</code> function, replaces it with a wrapper, calls the previous version, then restores coordinates. This avoids duplicating the entire core renderer, but means script order is important.</p>
+      </section>
+
+      <section class="guide-section" id="interactions" data-search="interaction click hover drag long press hold focus find user reset fit tooltip search friend unfriend">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-hand-pointer"></i></div><div><h2>12. Complete interaction rules</h2><div class="guide-section-intro">What every graph gesture/control is supposed to do.</div></div></div>
+        <div class="table-wrap"><table class="guide-table"><thead><tr><th>Action</th><th>Result</th><th>Does layout move?</th></tr></thead><tbody>
+          <tr><td>Hover person</td><td>Shows custom profile tooltip with name, metadata, friend count, interests.</td><td>No.</td></tr>
+          <tr><td>Click person</td><td>Selects person, emphasizes direct friendship lines/friends, grays unrelated people, loads top suggestions.</td><td>No.</td></tr>
+          <tr><td>Drag person</td><td>Tooltip hides; physics activates live; neighboring nodes/lines react; after release graph settles briefly then locks.</td><td>Yes, intentionally during manual movement.</td></tr>
+          <tr><td>Long-press another person while one is selected</td><td>Toggles friendship: connect if not friends, unfriend if already friends. Original source remains selected.</td><td>No network recreation; current layout is retained.</td></tr>
+          <tr><td>Find User</td><td>Finds exact/prefix/partial name, selects it, highlights its neighborhood, loads suggestions, gently centers it.</td><td>Nodes do not rearrange; camera pans/zooms modestly.</td></tr>
+          <tr><td>Focus</td><td>Hides unrelated people, but keeps selected person, direct friends, and top suggested people visible.</td><td>Can call Fit to frame visible content; node topology is unchanged.</td></tr>
+          <tr><td>Reset</td><td>Clears selected/focus/suggestion/analysis highlight state and result area.</td><td>No physics rearrangement.</td></tr>
+          <tr><td>Fit</td><td>Fits currently visible graph to the graph viewport.</td><td>Changes camera only.</td></tr>
+          <tr><td>Suggestion Connect button</td><td>Creates a real friendship through the standard friendship API flow.</td><td>Core reload may rebuild graph state.</td></tr>
+        </tbody></table></div>
+      </section>
+
+      <section class="guide-section" id="visuals" data-search="visual legend node colors selected suggested dashed line grey focus analysis path edge highlight tooltip">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-palette"></i></div><div><h2>13. Graph visual language</h2><div class="guide-section-intro">What node/edge colors and line styles mean.</div></div></div>
+        <div class="legend-demo"><span><i class="demo-dot user"></i>Normal user</span><span><i class="demo-dot selected"></i>Selected user</span><span><i class="demo-dot analysis"></i>Algorithm result</span><span><i class="demo-dot suggested"></i>Suggested user</span><span><i class="demo-line"></i>Real friendship emphasis</span><span><i class="demo-line suggested"></i>Suggested friendship</span></div>
+        <ul class="mt-3"><li><strong>Normal blue node:</strong> ordinary person in the graph.</li><li><strong>Selected blue node with stronger border:</strong> current neighborhood source.</li><li><strong>Gray nodes:</strong> unrelated to the selected person's direct neighborhood.</li><li><strong>Gold/orange:</strong> explicit analysis highlight, such as shortest-path or Find User highlight state when applicable.</li><li><strong>Very pale green:</strong> a high-ranked suggested friend.</li><li><strong>Solid edge:</strong> a real friendship stored in SQLite.</li><li><strong>Dashed pale green edge:</strong> recommendation only; not counted as a friendship or in graph metrics.</li></ul>
+        <h3>Tooltip behavior</h3><p>The tooltip is a custom HTML element rather than vis-network's native title tooltip. It uses canvas-to-DOM coordinate conversion so it follows the node while the graph is moving. Drag handlers explicitly hide/suppress it during manual node movement to prevent a popup from obscuring the drag.</p>
+      </section>
+
+      <section class="guide-section" id="activity" data-search="activity log history profile changes interests added removed friendship connected disconnected activity_entry wrappers sqlite">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-clock-rotate-left"></i></div><div><h2>14. Recent activity logging</h2><div class="guide-section-intro">How profile and graph mutations become persistent audit-style history.</div></div></div>
+        <p><code>activity_entry.py</code> installs <code>activity_log.install_activity_logging(app, DB_PATH)</code> before Gunicorn serves requests. The installer creates the activity table and then wraps Flask mutation view functions already registered by <code>app.py</code>.</p>
+        <h3>Events recorded</h3><ul><li>Profile created.</li><li>Profile removed.</li><li>Name, age group, hometown, occupation/role, or bio changes.</li><li>Interests added and interests removed, computed by comparing before/after snapshots.</li><li>Friendship created.</li><li>Friendship removed/unfriended.</li></ul>
+        <h3>Storage limits</h3><ul><li>Action type is capped at 40 characters.</li><li>Human-readable message is capped at 600 characters.</li><li>JSON metadata is capped at 2,000 characters.</li><li>Only the newest 300 rows are retained.</li><li>The API can return 1–100 rows per request; the UI requests 60.</li></ul>
+        <div class="callout warning"><i class="fa-solid fa-clock"></i><div>The log begins only after the feature is installed. It cannot reconstruct mutations that occurred before activity logging existed.</div></div>
+      </section>
+
+      <section class="guide-section" id="seed" data-search="seed data 50 people 75 friendships five communities additive version app_meta fictional profiles">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-users"></i></div><div><h2>15. Sample data and migration seeding</h2><div class="guide-section-intro">How the 50-person demonstration network is safely added without wiping user data.</div></div></div>
+        <p><code>seed_data.py</code> defines <code>SEED_VERSION = "50-profiles-v1"</code>, a 50-person fictional profile set, and 75 sample friendships arranged into recognizable communities. The seeder is <strong>additive</strong>: it inserts missing named sample users, enriches a matching sample user only when that existing profile has no profile details/interests, and uses <code>INSERT OR IGNORE</code> for sample friendships.</p>
+        <h3>Version control</h3><p>The <code>app_meta</code> table stores <code>sample_dataset_version</code>. If it already equals the current seed version, startup prints that the sample network is already seeded and stops without re-adding deleted sample users every restart.</p>
+        <h3>Data themes</h3><p>The profiles intentionally include overlapping interests and varied hometowns/age groups/occupations. This gives the recommendation model realistic non-zero candidates and makes group/path demonstrations meaningful. The data is fictional sample material for classroom/demo use.</p>
+      </section>
+
+      <section class="guide-section" id="validation" data-search="validation security input sanitization error duplicate self friendship html escaping foreign keys privacy">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-shield-halved"></i></div><div><h2>16. Validation, data safety, and client escaping</h2><div class="guide-section-intro">Rules that prevent invalid graph/data states and unsafe rendering.</div></div></div>
+        <ul><li>Name is required and capped at 80 characters.</li><li>Age group is capped at 30 characters; hometown/occupation at 80; bio at 240.</li><li>Interest strings are normalized, de-duplicated case-insensitively, capped to 40 characters and 12 entries.</li><li>User names and interest names have case-insensitive uniqueness behavior where appropriate.</li><li>Self-friendship is rejected.</li><li>Friendship IDs are sorted before storage, ensuring one canonical undirected pair.</li><li>Database uniqueness prevents duplicate friendship edges.</li><li>Foreign keys prevent invalid references and cascade deletes.</li><li>Frontend <code>escapeHtml()</code> is used when inserting user-provided names/details into HTML strings to reduce HTML injection risk.</li><li>The project deliberately avoids unnecessary sensitive fields such as exact birth date, contact details, gender, relationship status, or private messages.</li></ul>
+      </section>
+
+      <section class="guide-section" id="testing" data-search="testing unittest test_app seed graph summary add user friendship path mutual profile interests recommendations">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-vial"></i></div><div><h2>17. Automated tests</h2><div class="guide-section-intro">What <code>test_app.py</code> currently verifies.</div></div></div>
+        <ul><li>Empty temporary DB initializes the original seed graph and summary correctly.</li><li>A new user can be created, connected to Anna, and produces a one-degree shortest path.</li><li>Anna and Dana return Ben and Carlo as mutual friends in the base seed.</li><li>Profile metadata and interests persist; duplicate interest entries are normalized.</li><li>Profile updates replace metadata/interests.</li><li>Recommendations use profile similarity: a test user with Coding/Music ranks Anna appropriately.</li><li>After connecting a suggested friend, that person is excluded from future suggestions.</li></ul>
+        <div class="code-block">python -m unittest test_app.py</div>
+        <div class="callout warning"><i class="fa-solid fa-triangle-exclamation"></i><div>The current tests primarily cover <code>app.py</code> APIs. The later browser-only interaction layers (bridge-aware group UI, drag physics, long-press gesture, guide page, activity UI) do not yet have automated browser tests.</div></div>
+      </section>
+
+      <section class="guide-section" id="deployment" data-search="deployment railway docker gunicorn port db_path volume sqlite production activity_entry seed procfile">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div><div><h2>18. Railway / production deployment</h2><div class="guide-section-intro">The exact production startup sequence and persistence requirement.</div></div></div>
+        <h3>Docker startup</h3><div class="code-block">python seed_data.py
+→ gunicorn activity_entry:app
+→ bind 0.0.0.0:${PORT:-8080}
+→ 2 workers, 2 threads, 60s timeout</div>
+        <p>The Procfile expresses the same essential flow for platforms that use it: run the seed migration, then serve <code>activity_entry:app</code> through Gunicorn on Railway's injected port.</p>
+        <h3>Persistent SQLite</h3><div class="code-block">Railway volume mount: /data
+Environment variable: DB_PATH=/data/sna.db</div>
+        <p>Without a persistent volume, the container filesystem may be replaced on deployment and SQLite data can be lost. With <code>DB_PATH=/data/sna.db</code> and a mounted volume, profiles, friendships, interests, seed metadata, and activity history persist.</p>
+        <h3>Why the server binds this way</h3><p>Railway routes public traffic to the process listening on its assigned <code>$PORT</code>. Gunicorn therefore binds to <code>0.0.0.0</code>, not localhost.</p>
+      </section>
+
+      <section class="guide-section" id="performance" data-search="complexity performance big o bfs bridges recommendations networkx sqlite graph 50 nodes">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-gauge-high"></i></div><div><h2>19. Algorithmic complexity and performance</h2><div class="guide-section-intro">Why the current approach is appropriate for a classroom-sized dynamic network.</div></div></div>
+        <div class="table-wrap"><table class="guide-table"><thead><tr><th>Operation</th><th>Approximate complexity</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Build graph</td><td>O(V + E)</td><td>Reads users and friendships from SQLite into NetworkX.</td></tr>
+          <tr><td>Shortest path (unweighted)</td><td>O(V + E)</td><td>BFS-style traversal in worst case.</td></tr>
+          <tr><td>Connected components</td><td>O(V + E)</td><td>NetworkX traversal.</td></tr>
+          <tr><td>Bridge detection / strong groups</td><td>O(V + E)</td><td>DFS low-link pass plus component traversal skipping bridges.</td></tr>
+          <tr><td>Degree summary</td><td>O(V + E)</td><td>Degree values depend on edge incidence.</td></tr>
+          <tr><td>Mutual friends</td><td>Neighbor-set dependent</td><td>Primarily tied to degrees of the selected users.</td></tr>
+          <tr><td>Recommendations</td><td>Candidate loop over users</td><td>For each non-friend candidate it compares interest sets and neighbor intersections.</td></tr>
+          <tr><td>Graph rendering</td><td>Physics dependent</td><td>Initial stabilization and manual drag are the most visibly expensive client operations.</td></tr>
+        </tbody></table></div>
+        <p>With roughly 50 nodes and tens/hundreds of edges, rebuilding NetworkX graphs and running these algorithms per request is simple and understandable. At much larger scales, caching, indexed queries, server-side community algorithms, or a graph database could become appropriate.</p>
+      </section>
+
+      <section class="guide-section" id="limitations" data-search="limitations known issues scope architecture workers sqlite frontend groups activity testing authentication">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><div><h2>20. Current limitations and design choices</h2><div class="guide-section-intro">Important facts to state clearly instead of presenting the project as something it is not.</div></div></div>
+        <ul><li><strong>No authentication/authorization:</strong> anyone who can access the app can change the demo network.</li><li><strong>SQLite:</strong> excellent for a small single-service academic project, but not designed for high-write multi-instance social-network production workloads.</li><li><strong>Strong Groups is client-side:</strong> the dashboard/Groups UI uses bridge-aware groups while raw API summary/components still expose ordinary connected components.</li><li><strong>JavaScript enhancement layering:</strong> later scripts wrap/replace earlier handlers. This keeps changes modular but makes script load order part of the architecture.</li><li><strong>Activity history is mutation history, not full security audit logging:</strong> it does not identify authenticated actors because accounts do not exist.</li><li><strong>Recommendation formula is interpretable and educational:</strong> it is not machine-learned and does not claim predictive accuracy.</li><li><strong>Suggested edges are visual candidates only:</strong> they never affect NetworkX graph metrics until accepted.</li><li><strong>Seed data is demonstration data:</strong> it should not be treated as empirical social-network data.</li></ul>
+      </section>
+
+      <section class="guide-section" id="defense" data-search="defense presentation demo explanation midterm dynamic graphs viva walkthrough">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-person-chalkboard"></i></div><div><h2>21. Suggested project-defense walkthrough</h2><div class="guide-section-intro">A concise order for demonstrating that the system is truly dynamic.</div></div></div>
+        <ol><li><strong>Define the model:</strong> people = vertices; friendships = undirected edges; profile fields = node attributes.</li><li><strong>Show the live graph:</strong> point out real solid edges versus dashed suggested candidate edges.</li><li><strong>Select a user:</strong> explain direct-neighborhood emphasis, gray unrelated nodes, and top suggestions.</li><li><strong>Explain recommendations:</strong> 60% Jaccard interest similarity, 20% mutual-friend signal, 10% hometown, 10% age group.</li><li><strong>Create a dynamic edge:</strong> long-press a suggested/non-friend user or use Connect. Show how the dashed relation becomes a real edge.</li><li><strong>Run shortest path / mutual friends:</strong> show that analyses immediately reflect the changed topology.</li><li><strong>Show Strong Groups:</strong> explain why a single bridge does not merge otherwise separate communities.</li><li><strong>Move a node:</strong> demonstrate live physics during drag but stable layout during simple selection.</li><li><strong>Edit interests:</strong> show how metadata can change future candidate-edge ranking without directly changing E.</li><li><strong>Open Activity:</strong> show the recorded connection/profile/interest changes.</li><li><strong>Close with persistence/deployment:</strong> SQLite volume, Gunicorn, Railway, and versioned seed migration.</li></ol>
+        <div class="callout success"><i class="fa-solid fa-graduation-cap"></i><div><strong>Key academic message:</strong> the system separates <em>graph topology</em> from <em>vertex attributes</em>. Topology drives paths, connectedness, degree, and density; metadata contributes to recommendation of possible future edges. Accepting a recommendation converts a metadata-informed candidate into a real topology change.</div></div>
+      </section>
+
+      <section class="guide-section" id="glossary" data-search="glossary vertex node edge degree density component bridge jaccard mutual friend candidate edge topology metadata">
+        <div class="guide-section-head"><div class="guide-section-icon"><i class="fa-solid fa-book"></i></div><div><h2>22. Glossary</h2><div class="guide-section-intro">Terms used throughout the application.</div></div></div>
+        <div class="guide-grid">
+          <div class="guide-card"><div class="guide-card-title">Vertex / Node</div><p>A person in the network.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Edge</div><p>A real accepted friendship between two people.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Candidate edge</div><p>A suggested friendship represented by a dashed line, not yet part of E.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Degree</div><p>Number of real friendship edges incident to a person.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Connected component</div><p>A maximal set in which every pair is connected by some path.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Bridge</div><p>An edge whose removal increases the number of connected components.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Strong group</div><p>This app's bridge-aware community: component after bridge-only ties are ignored.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Density</div><p>Existing real edges divided by all possible undirected edges.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Mutual friend</div><p>A node adjacent to both selected people.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Shortest path</div><p>Path containing the fewest friendship hops between two people.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Jaccard similarity</div><p>Intersection size divided by union size for two interest sets.</p></div>
+          <div class="guide-card"><div class="guide-card-title">Topology</div><p>The actual node/edge structure, independent of profile metadata.</p></div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div class="footer-note">System Guide for the Dynamic Social Network Friend Analyzer • Documentation reflects the current main-branch architecture.</div>
+</main>
+
+<script src="{{ url_for('static', filename='js/system_guide.js') }}"></script>
+</body>
+</html>
