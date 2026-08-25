@@ -17,7 +17,7 @@
       <span class="brand-icon"><i class="fa-solid fa-share-nodes"></i></span>
       <div class="min-w-0">
         <div class="navbar-brand m-0 fw-semibold text-truncate">Social Network Friend Analyzer</div>
-        <div class="brand-subtitle d-none d-sm-block">Dynamic Graphs • MS Computer Science</div>
+        <div class="brand-subtitle d-none d-sm-block">Dynamic Graphs • Profiles • Friend Recommendations</div>
       </div>
     </div>
     <span class="live-pill"><span class="live-dot"></span>Live graph</span>
@@ -38,8 +38,8 @@
 
       <ul class="nav nav-pills compact-tabs" id="manageTabs" role="tablist">
         <li class="nav-item flex-fill" role="presentation">
-          <button class="nav-link active w-100" data-bs-toggle="pill" data-bs-target="#usersTab" type="button">
-            <i class="fa-solid fa-user me-1"></i> Users
+          <button class="nav-link active w-100" data-bs-toggle="pill" data-bs-target="#profilesTab" type="button">
+            <i class="fa-solid fa-id-card me-1"></i> Profiles
           </button>
         </li>
         <li class="nav-item flex-fill" role="presentation">
@@ -50,28 +50,29 @@
       </ul>
 
       <div class="tab-content flex-grow-1">
-        <div class="tab-pane fade show active" id="usersTab">
+        <div class="tab-pane fade show active" id="profilesTab">
           <div class="control-group">
-            <label class="form-label small-label" for="newUserName">Add a user</label>
-            <div class="input-group input-group-sm">
-              <input id="newUserName" class="form-control" placeholder="Enter name" autocomplete="off">
-              <button class="btn btn-primary px-3" id="addUserBtn" title="Add user">
-                <i class="fa-solid fa-plus"></i>
-              </button>
-            </div>
+            <label class="form-label small-label" for="profileUser">Selected profile</label>
+            <select id="profileUser" class="form-select form-select-sm"></select>
           </div>
 
-          <div class="control-group">
-            <label class="form-label small-label" for="removeUser">Remove a user</label>
-            <select id="removeUser" class="form-select form-select-sm"></select>
-            <button class="btn btn-outline-danger btn-sm w-100 mt-2" id="removeUserBtn">
-              <i class="fa-regular fa-trash-can me-1"></i> Remove selected user
+          <div id="profilePreview" class="profile-preview"></div>
+
+          <div class="profile-actions mt-2">
+            <button class="btn btn-primary btn-sm" id="newProfileBtn">
+              <i class="fa-solid fa-user-plus me-1"></i> New
+            </button>
+            <button class="btn btn-outline-primary btn-sm" id="editProfileBtn">
+              <i class="fa-solid fa-pen me-1"></i> Edit
+            </button>
+            <button class="btn btn-outline-danger btn-sm" id="removeUserBtn" title="Remove profile">
+              <i class="fa-regular fa-trash-can"></i>
             </button>
           </div>
 
           <div class="helper-card mt-auto">
-            <i class="fa-solid fa-circle-info"></i>
-            <span>Adding or removing a user updates the graph immediately.</span>
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>Interests and profile similarity power friend recommendations.</span>
           </div>
         </div>
 
@@ -94,7 +95,7 @@
           </div>
           <div class="helper-card mt-3">
             <i class="fa-solid fa-arrows-rotate"></i>
-            <span>Every edge change triggers fresh graph metrics.</span>
+            <span>Every edge change updates paths, groups, centrality, and suggestions.</span>
           </div>
         </div>
       </div>
@@ -150,6 +151,9 @@
         <button class="btn btn-outline-primary btn-sm" id="mutualBtn">
           <i class="fa-solid fa-user-group me-1"></i> Mutual friends
         </button>
+        <button class="btn btn-outline-success btn-sm" id="suggestBtn">
+          <i class="fa-solid fa-user-plus me-1"></i> Suggestions
+        </button>
         <button class="btn btn-outline-secondary btn-sm" id="groupsBtn">
           <i class="fa-solid fa-people-group me-1"></i> Groups
         </button>
@@ -157,19 +161,77 @@
 
       <div class="result-box" id="result">
         <div class="empty-state">
-          <i class="fa-solid fa-chart-network fa-share-nodes"></i>
+          <i class="fa-solid fa-share-nodes"></i>
           <strong>Ready to analyze</strong>
-          <span>Select two people and choose an algorithm.</span>
+          <span>Select people and choose an algorithm.</span>
         </div>
       </div>
 
       <div class="algorithm-note">
-        <span class="badge text-bg-light border">BFS</span>
-        <span>Shortest connection uses breadth-first search on the current graph.</span>
+        <span class="badge text-bg-light border">Hybrid</span>
+        <span>Suggestions combine interest similarity with graph topology and light profile similarity.</span>
       </div>
     </aside>
   </section>
 </main>
+
+<div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header">
+        <div>
+          <div class="eyebrow">Social profile</div>
+          <h5 class="modal-title" id="profileModalLabel">Add profile</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="profileId">
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="form-label small-label" for="profileName">Name *</label>
+            <input id="profileName" class="form-control form-control-sm" maxlength="80" placeholder="Full name">
+          </div>
+          <div class="col-6">
+            <label class="form-label small-label" for="profileAgeGroup">Age group</label>
+            <select id="profileAgeGroup" class="form-select form-select-sm">
+              <option value="">Not specified</option>
+              <option>Under 18</option>
+              <option>18-24</option>
+              <option>25-34</option>
+              <option>35-44</option>
+              <option>45-54</option>
+              <option>55+</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label small-label" for="profileHometown">Hometown</label>
+            <input id="profileHometown" class="form-control form-control-sm" maxlength="80" placeholder="e.g., Manila">
+          </div>
+          <div class="col-12">
+            <label class="form-label small-label" for="profileOccupation">Occupation / role</label>
+            <input id="profileOccupation" class="form-control form-control-sm" maxlength="80" placeholder="e.g., Student, Developer">
+          </div>
+          <div class="col-12">
+            <label class="form-label small-label" for="profileInterests">Interests</label>
+            <input id="profileInterests" class="form-control form-control-sm" placeholder="Coding, music, travel">
+            <div class="form-text">Separate interests with commas. Up to 12 interests are stored.</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label small-label" for="profileBio">Short bio</label>
+            <textarea id="profileBio" class="form-control form-control-sm" rows="2" maxlength="240" placeholder="A short description"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm px-3" id="saveProfileBtn">
+          <i class="fa-solid fa-floppy-disk me-1"></i> Save profile
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="toast-container position-fixed top-0 end-0 p-3">
   <div id="appToast" class="toast border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
