@@ -2,10 +2,12 @@
   let layoutLocked = false;
   let activeNetwork = null;
   let lockTimer = null;
-  let reflowing = false;
+  let manualMoving = false;
+  let settleTimer = null;
+  let preservedView = null;
 
   function captureLayout() {
-    if (!network || !layoutLocked || reflowing) return null;
+    if (!network || !layoutLocked || manualMoving) return null;
     return {
       positions: network.getPositions(),
       viewPosition: network.getViewPosition(),
@@ -14,7 +16,7 @@
   }
 
   function restoreLayout(snapshot) {
-    if (!snapshot || !network || !layoutLocked || reflowing) return;
+    if (!snapshot || !network || !layoutLocked || manualMoving) return;
     network.setOptions({ physics: false });
     Object.entries(snapshot.positions || {}).forEach(([id, position]) => {
       network.moveNode(Number(id), position.x, position.y);
@@ -28,50 +30,65 @@
 
   function lockCurrentNetwork(target) {
     if (!target || network !== target) return;
+    if (settleTimer) {
+      clearTimeout(settleTimer);
+      settleTimer = null;
+    }
+    target.stopSimulation();
     target.setOptions({ physics: false });
     if (typeof target.storePositions === 'function') target.storePositions();
+    if (preservedView) {
+      target.moveTo({
+        position: preservedView.position,
+        scale: preservedView.scale,
+        animation: false
+      });
+    }
     layoutLocked = true;
-    reflowing = false;
+    manualMoving = false;
+    preservedView = null;
     activeNetwork = target;
   }
 
-  function reflowAfterManualMove() {
+  function beginManualMove() {
     const target = network;
-    if (!target || reflowing) return;
-    reflowing = true;
+    if (!target || manualMoving) return;
+
+    manualMoving = true;
     layoutLocked = false;
-
-    const viewPosition = target.getViewPosition();
-    const scale = target.getScale();
-    let finished = false;
-
-    const finish = () => {
-      if (finished || network !== target) return;
-      finished = true;
-      lockCurrentNetwork(target);
-      target.moveTo({ position: viewPosition, scale, animation: false });
+    preservedView = {
+      position: target.getViewPosition(),
+      scale: target.getScale()
     };
 
     target.setOptions({
       physics: {
         enabled: true,
-        stabilization: {
-          enabled: true,
-          iterations: 90,
-          updateInterval: 20,
-          fit: false
+        stabilization: false,
+        barnesHut: {
+          gravitationalConstant: -3200,
+          springLength: 120,
+          springConstant: .035,
+          damping: .18
         }
       }
     });
-    target.once('stabilized', finish);
-    target.stabilize(90);
-    setTimeout(finish, 1400);
+    target.startSimulation();
+  }
+
+  function endManualMove() {
+    const target = network;
+    if (!target || !manualMoving) return;
+
+    // Keep physics alive for a short natural settle after release, then freeze.
+    // The camera itself is never moved by this process.
+    settleTimer = setTimeout(() => lockCurrentNetwork(target), 520);
   }
 
   const originalRenderVisualState = renderVisualState;
   renderVisualState = function(...args) {
     const snapshot = captureLayout();
-    if (layoutLocked && network && !reflowing) network.setOptions({ physics: false });
+    if (layoutLocked && network && !manualMoving) network.setOptions({ physics: false });
     const result = originalRenderVisualState.apply(this, args);
     restoreLayout(snapshot);
     return result;
@@ -80,8 +97,10 @@
   const originalLoadGraphData = loadGraphData;
   loadGraphData = async function(...args) {
     layoutLocked = false;
-    reflowing = false;
+    manualMoving = false;
+    preservedView = null;
     if (lockTimer) clearTimeout(lockTimer);
+    if (settleTimer) clearTimeout(settleTimer);
 
     const result = await originalLoadGraphData.apply(this, args);
     const target = network;
@@ -98,19 +117,22 @@
     if (!network || network === activeNetwork) return;
     activeNetwork = network;
     layoutLocked = false;
-    reflowing = false;
+    manualMoving = false;
+    preservedView = null;
     network.once('stabilized', () => lockCurrentNetwork(network));
   }, 250);
 
   window.graphLayoutController = {
-    reflowAfterManualMove,
+    beginManualMove,
+    endManualMove,
     lock: () => lockCurrentNetwork(network),
     isLocked: () => layoutLocked,
-    isReflowing: () => reflowing
+    isManualMoving: () => manualMoving
   };
 
   window.addEventListener('beforeunload', () => {
     clearInterval(watchForNetwork);
     if (lockTimer) clearTimeout(lockTimer);
+    if (settleTimer) clearTimeout(settleTimer);
   }, { once: true });
 })();
