@@ -2,14 +2,19 @@
   let attachedNetwork = null;
   let suppressNextClick = false;
   let changingFriendship = false;
+  let pressSourceId = null;
+  let clearSuppressTimer = null;
+  let boundContainer = null;
 
   function areFriends(a, b) {
     const key = edgeKey(a, b);
     return graphData.edges.some(edge => edgeKey(edge.from, edge.to) === key);
   }
 
-  async function toggleFriendshipByLongPress(targetId) {
-    const sourceId = selectedNodeId === null ? null : Number(selectedNodeId);
+  async function toggleFriendshipByLongPress(sourceAtPress, targetId) {
+    const sourceId = sourceAtPress === null || sourceAtPress === undefined
+      ? null
+      : Number(sourceAtPress);
     const target = Number(targetId);
 
     if (sourceId === null) {
@@ -29,12 +34,12 @@
     const alreadyFriends = areFriends(sourceId, target);
 
     try {
-      const method = alreadyFriends ? 'DELETE' : 'POST';
       await api('/api/friendships', {
-        method,
+        method: alreadyFriends ? 'DELETE' : 'POST',
         body: JSON.stringify({ user1_id: sourceId, user2_id: target })
       });
 
+      // Refresh the data only. Keep the current vis Network instance and layout.
       graphData = await api('/api/graph');
       selectedNodeId = sourceId;
 
@@ -51,6 +56,12 @@
 
       renderVisualState();
       if (network) network.selectNodes([sourceId], false);
+
+      if ($('profileUser')) {
+        $('profileUser').value = String(sourceId);
+        updateProfilePreview();
+      }
+      if ($('analysisA')) $('analysisA').value = String(sourceId);
 
       await loadSummary();
       await loadSuggestionEdges(sourceId);
@@ -75,10 +86,34 @@
     }
   }
 
+  function bindPressSourceCapture() {
+    const container = $('network');
+    if (!container || container === boundContainer) return;
+    boundContainer = container;
+
+    container.addEventListener('pointerdown', () => {
+      // Snapshot the active person before vis-network can change its own
+      // internal selection as the second person is being held.
+      pressSourceId = selectedNodeId === null ? null : Number(selectedNodeId);
+      if (clearSuppressTimer) clearTimeout(clearSuppressTimer);
+    }, true);
+
+    const release = () => {
+      if (clearSuppressTimer) clearTimeout(clearSuppressTimer);
+      clearSuppressTimer = setTimeout(() => {
+        suppressNextClick = false;
+        pressSourceId = null;
+      }, 450);
+    };
+    container.addEventListener('pointerup', release, true);
+    container.addEventListener('pointercancel', release, true);
+  }
+
   function installNetworkGestures(target) {
     if (!target || target === attachedNetwork) return;
     attachedNetwork = target;
     suppressNextClick = false;
+    bindPressSourceCapture();
 
     target.off('click');
     target.on('click', async params => {
@@ -103,11 +138,13 @@
       await loadSuggestionEdges(id);
     });
 
+    target.off('hold');
     target.on('hold', params => {
       if (!params.nodes.length) return;
       suppressNextClick = true;
-      toggleFriendshipByLongPress(Number(params.nodes[0]));
-      setTimeout(() => { suppressNextClick = false; }, 700);
+      const targetId = Number(params.nodes[0]);
+      const sourceId = pressSourceId;
+      toggleFriendshipByLongPress(sourceId, targetId);
     });
   }
 
@@ -118,6 +155,14 @@
     return result;
   };
 
-  const watcher = setInterval(() => installNetworkGestures(network), 250);
-  window.addEventListener('beforeunload', () => clearInterval(watcher), { once: true });
+  bindPressSourceCapture();
+  const watcher = setInterval(() => {
+    bindPressSourceCapture();
+    installNetworkGestures(network);
+  }, 250);
+
+  window.addEventListener('beforeunload', () => {
+    clearInterval(watcher);
+    if (clearSuppressTimer) clearTimeout(clearSuppressTimer);
+  }, { once: true });
 })();
