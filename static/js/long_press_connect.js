@@ -1,52 +1,53 @@
 (() => {
   let attachedNetwork = null;
   let suppressNextClick = false;
-  let connecting = false;
+  let changingFriendship = false;
 
   function areFriends(a, b) {
     const key = edgeKey(a, b);
     return graphData.edges.some(edge => edgeKey(edge.from, edge.to) === key);
   }
 
-  async function connectByLongPress(targetId) {
+  async function toggleFriendshipByLongPress(targetId) {
     const sourceId = selectedNodeId === null ? null : Number(selectedNodeId);
     const target = Number(targetId);
 
     if (sourceId === null) {
-      notify('Select a person first, then long-press another person to connect them.', 'warning');
+      notify('Select a person first, then long-press another person.', 'warning');
       return;
     }
     if (sourceId === target) {
-      notify('Long-press a different person to create a friendship.', 'warning');
+      notify('Long-press a different person.', 'warning');
       return;
     }
-    if (areFriends(sourceId, target)) {
-      const source = getUser(sourceId);
-      const other = getUser(target);
-      notify(`${source?.name || 'These users'} and ${other?.name || 'the selected person'} are already friends.`, 'warning');
-      return;
-    }
-    if (connecting) return;
+    if (changingFriendship) return;
 
-    connecting = true;
+    changingFriendship = true;
     const source = getUser(sourceId);
     const other = getUser(target);
+    const friendshipKey = edgeKey(sourceId, target);
+    const alreadyFriends = areFriends(sourceId, target);
 
     try {
+      const method = alreadyFriends ? 'DELETE' : 'POST';
       await api('/api/friendships', {
-        method: 'POST',
+        method,
         body: JSON.stringify({ user1_id: sourceId, user2_id: target })
       });
 
-      // Refresh only graph data, not the Network instance. This keeps all
-      // coordinates, zoom, and camera position exactly where they are.
       graphData = await api('/api/graph');
       selectedNodeId = sourceId;
-      focusConnectedOnly = false;
-      activeSuggestions = activeSuggestions.filter(item => Number(item.id) !== target);
+
+      if (alreadyFriends && edgeSet) {
+        edgeSet.remove(`friend:${friendshipKey}`);
+      }
+      if (!alreadyFriends) {
+        activeSuggestions = activeSuggestions.filter(item => Number(item.id) !== target);
+      }
+
       highlightedNodes.clear();
       highlightedEdges.clear();
-      highlightedEdges.add(edgeKey(sourceId, target));
+      if (!alreadyFriends) highlightedEdges.add(friendshipKey);
 
       renderVisualState();
       if (network) network.selectNodes([sourceId], false);
@@ -54,18 +55,23 @@
       await loadSummary();
       await loadSuggestionEdges(sourceId);
 
-      notify(`${source?.name || 'Selected person'} and ${other?.name || 'person'} are now friends.`);
+      notify(
+        alreadyFriends
+          ? `${source?.name || 'Selected person'} and ${other?.name || 'person'} are no longer friends.`
+          : `${source?.name || 'Selected person'} and ${other?.name || 'person'} are now friends.`,
+        alreadyFriends ? 'warning' : 'success'
+      );
 
-      // Briefly emphasize the newly-created friendship, then return to the
-      // normal selected-neighborhood styling without moving the graph.
-      setTimeout(() => {
-        highlightedEdges.delete(edgeKey(sourceId, target));
-        renderVisualState();
-      }, 1300);
+      if (!alreadyFriends) {
+        setTimeout(() => {
+          highlightedEdges.delete(friendshipKey);
+          renderVisualState();
+        }, 1300);
+      }
     } catch (error) {
       notify(error.message, 'danger');
     } finally {
-      connecting = false;
+      changingFriendship = false;
     }
   }
 
@@ -74,8 +80,6 @@
     attachedNetwork = target;
     suppressNextClick = false;
 
-    // Replace the original click handler with the same selection behavior,
-    // plus suppression of a click that may be emitted after a long press.
     target.off('click');
     target.on('click', async params => {
       if (suppressNextClick) {
@@ -102,11 +106,7 @@
     target.on('hold', params => {
       if (!params.nodes.length) return;
       suppressNextClick = true;
-      const targetId = Number(params.nodes[0]);
-      connectByLongPress(targetId);
-
-      // Some devices do not emit the post-hold click. Avoid suppressing a
-      // later intentional click in that case.
+      toggleFriendshipByLongPress(Number(params.nodes[0]));
       setTimeout(() => { suppressNextClick = false; }, 700);
     });
   }
@@ -118,8 +118,6 @@
     return result;
   };
 
-  // Covers the initial async load if it completes between script execution
-  // and the wrapper above, as well as any externally recreated network.
   const watcher = setInterval(() => installNetworkGestures(network), 250);
   window.addEventListener('beforeunload', () => clearInterval(watcher), { once: true });
 })();
