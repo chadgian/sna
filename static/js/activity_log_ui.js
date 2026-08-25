@@ -17,6 +17,9 @@
       actions.className = 'nav-status-actions';
       if (live) actions.appendChild(live);
       actions.insertAdjacentHTML('beforeend', `
+        <a class="activity-log-btn text-decoration-none" id="systemGuideBtn" href="/system-guide" title="Open complete system documentation">
+          <i class="fa-solid fa-book-open"></i><span>Guide</span>
+        </a>
         <button class="activity-log-btn" id="activityLogBtn" type="button" data-bs-toggle="offcanvas" data-bs-target="#activityLogPanel" aria-controls="activityLogPanel">
           <i class="fa-solid fa-clock-rotate-left"></i><span>Activity</span>
         </button>`);
