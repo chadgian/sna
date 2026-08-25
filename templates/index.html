@@ -107,8 +107,11 @@
           <div class="eyebrow">Visualization</div>
           <h2 class="panel-title">Live dynamic graph</h2>
         </div>
-        <div class="btn-group btn-group-sm" role="group" aria-label="Graph controls">
-          <button class="btn btn-light border" id="resetGraphBtn" title="Clear analysis highlight">
+        <div class="btn-group btn-group-sm graph-actions" role="group" aria-label="Graph controls">
+          <button class="btn btn-light border" id="focusGraphBtn" title="Hide people outside the selected person's direct connections" aria-pressed="false">
+            <i class="fa-solid fa-eye"></i><span class="d-none d-xl-inline ms-1">Focus</span>
+          </button>
+          <button class="btn btn-light border" id="resetGraphBtn" title="Clear selection and analysis highlight">
             <i class="fa-solid fa-rotate-left"></i><span class="d-none d-xl-inline ms-1">Reset</span>
           </button>
           <button class="btn btn-light border" id="fitGraphBtn" title="Fit graph to view">
@@ -118,9 +121,11 @@
       </div>
       <div class="graph-stage">
         <div id="network"></div>
+        <div id="graphTooltip" class="graph-tooltip" role="tooltip" aria-hidden="true"></div>
         <div class="graph-legend">
           <span><i class="legend-dot normal"></i>User</span>
           <span><i class="legend-dot highlighted"></i>Analysis result</span>
+          <span><i class="legend-line suggested"></i>Suggested</span>
         </div>
       </div>
     </section>
