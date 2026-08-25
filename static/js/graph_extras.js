@@ -23,7 +23,6 @@
     function dfs(node, parentEdge = null) {
       discovered.set(node, ++clock);
       low.set(node, discovered.get(node));
-
       for (const edge of adjacency.get(node) || []) {
         if (edge.key === parentEdge) continue;
         const next = edge.to;
@@ -46,7 +45,6 @@
       const stack = [start];
       visited.add(start);
       const members = [];
-
       while (stack.length) {
         const node = stack.pop();
         members.push(node);
@@ -87,7 +85,7 @@
         <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
         <input id="graphUserSearch" class="form-control" list="graphUserOptions" placeholder="Find user…" autocomplete="off" aria-label="Find user in graph">
         <datalist id="graphUserOptions"></datalist>
-        <button class="btn btn-outline-primary" id="findGraphUserBtn" type="button" title="Highlight user">
+        <button class="btn btn-outline-primary" id="findGraphUserBtn" type="button" title="Highlight user and connections">
           <i class="fa-solid fa-location-crosshairs"></i>
         </button>
       </div>`;
@@ -117,7 +115,7 @@
       || users.find(u => u.name.toLowerCase().includes(query));
   }
 
-  function highlightFoundUser() {
+  async function highlightFoundUser() {
     const input = document.getElementById('graphUserSearch');
     const user = findUserByInput(input?.value);
     if (!user) {
@@ -125,23 +123,33 @@
       return;
     }
 
-    beginAnalysis();
-    highlightedNodes.add(Number(user.id));
-    renderVisualState();
+    const id = Number(user.id);
+    selectedNodeId = id;
+    focusConnectedOnly = false;
+    activeSuggestions = [];
+    highlightedNodes.clear();
+    highlightedEdges.clear();
 
     if (document.getElementById('profileUser')) {
-      document.getElementById('profileUser').value = String(user.id);
+      document.getElementById('profileUser').value = String(id);
       updateProfilePreview();
     }
-    if (document.getElementById('analysisA')) document.getElementById('analysisA').value = String(user.id);
+    if (document.getElementById('analysisA')) document.getElementById('analysisA').value = String(id);
     if (input) input.value = user.name;
 
+    renderVisualState();
+    await loadSuggestionEdges(id);
+
     if (network) {
-      network.focus(Number(user.id), {
-        scale: 1.35,
-        animation: { duration: 450, easingFunction: 'easeInOutQuad' }
+      const currentScale = network.getScale();
+      const targetScale = currentScale < 0.65
+        ? Math.min(currentScale * 1.22, 0.65)
+        : Math.min(currentScale * 1.04, 1.0);
+      network.focus(id, {
+        scale: targetScale,
+        animation: { duration: 360, easingFunction: 'easeInOutQuad' }
       });
-      setTimeout(() => network.selectNodes([Number(user.id)], false), 460);
+      setTimeout(() => network.selectNodes([id], false), 380);
     }
   }
 
