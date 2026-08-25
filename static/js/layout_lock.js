@@ -6,6 +6,45 @@
   let settleTimer = null;
   let preservedView = null;
 
+  // These settings intentionally use a very weak spring force. springLength is
+  // only a preferred resting distance in vis-network, not a maximum edge
+  // length. Strong repulsion + low central gravity lets friendship lines stretch
+  // when extra space produces a clearer, less tangled layout.
+  const OPEN_LAYOUT_PHYSICS = {
+    enabled: true,
+    stabilization: {
+      enabled: true,
+      iterations: 220,
+      updateInterval: 25,
+      fit: true
+    },
+    barnesHut: {
+      gravitationalConstant: -6200,
+      centralGravity: 0.055,
+      springLength: 220,
+      springConstant: 0.007,
+      damping: 0.20,
+      avoidOverlap: 1
+    },
+    maxVelocity: 38,
+    minVelocity: 0.35
+  };
+
+  const LIVE_DRAG_PHYSICS = {
+    enabled: true,
+    stabilization: false,
+    barnesHut: {
+      gravitationalConstant: -6200,
+      centralGravity: 0.055,
+      springLength: 220,
+      springConstant: 0.007,
+      damping: 0.18,
+      avoidOverlap: 1
+    },
+    maxVelocity: 42,
+    minVelocity: 0.25
+  };
+
   function captureLayout() {
     if (!network || !layoutLocked || manualMoving) return null;
     return {
@@ -61,18 +100,7 @@
       scale: target.getScale()
     };
 
-    target.setOptions({
-      physics: {
-        enabled: true,
-        stabilization: false,
-        barnesHut: {
-          gravitationalConstant: -3200,
-          springLength: 120,
-          springConstant: .035,
-          damping: .18
-        }
-      }
-    });
+    target.setOptions({ physics: LIVE_DRAG_PHYSICS });
     target.startSimulation();
   }
 
@@ -80,9 +108,9 @@
     const target = network;
     if (!target || !manualMoving) return;
 
-    // Keep physics alive for a short natural settle after release, then freeze.
-    // The camera itself is never moved by this process.
-    settleTimer = setTimeout(() => lockCurrentNetwork(target), 520);
+    // Let the freely-spaced network react for a little while after release.
+    // It is then frozen so normal selection never rearranges the graph.
+    settleTimer = setTimeout(() => lockCurrentNetwork(target), 700);
   }
 
   const originalRenderVisualState = renderVisualState;
@@ -107,8 +135,13 @@
     activeNetwork = target;
 
     if (target) {
+      // Override the compact core defaults immediately. This gives the first
+      // layout more freedom and avoids treating edge length as a tight target.
+      target.setOptions({ physics: OPEN_LAYOUT_PHYSICS });
+      target.startSimulation();
       target.once('stabilized', () => lockCurrentNetwork(target));
-      lockTimer = setTimeout(() => lockCurrentNetwork(target), 1800);
+      target.stabilize(220);
+      lockTimer = setTimeout(() => lockCurrentNetwork(target), 2600);
     }
     return result;
   };
@@ -119,6 +152,8 @@
     layoutLocked = false;
     manualMoving = false;
     preservedView = null;
+    network.setOptions({ physics: OPEN_LAYOUT_PHYSICS });
+    network.startSimulation();
     network.once('stabilized', () => lockCurrentNetwork(network));
   }, 250);
 
