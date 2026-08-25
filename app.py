@@ -5,7 +5,7 @@ from flask import Flask, jsonify, render_template, request
 import networkx as nx
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "sna.db")
+DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "sna.db"))
 app = Flask(__name__)
 
 
@@ -178,8 +178,9 @@ def components():
     return jsonify(groups)
 
 
+init_db()
+
+
 if __name__ == "__main__":
-    init_db()
-    app.run(debug=True)
-else:
-    init_db()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG") == "1")
