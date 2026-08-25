@@ -44,6 +44,57 @@ class SocialNetworkApiTests(unittest.TestCase):
         result = self.client.get(f"/api/analysis/mutual/{ids['Anna']}/{ids['Dana']}").get_json()
         self.assertEqual({u['name'] for u in result}, {'Ben','Carlo'})
 
+    def test_profile_fields_and_interests(self):
+        created = self.client.post('/api/users', json={
+            'name':'Ivy',
+            'age_group':'18-24',
+            'hometown':'Manila',
+            'occupation':'Student',
+            'bio':'Interested in software and design.',
+            'interests':['Coding','Music','Coding']
+        })
+        self.assertEqual(created.status_code, 201)
+        profile = created.get_json()
+        self.assertEqual(profile['hometown'], 'Manila')
+        self.assertEqual(set(profile['interests']), {'Coding','Music'})
+
+        updated = self.client.put(f"/api/users/{profile['id']}", json={
+            'name':'Ivy',
+            'age_group':'18-24',
+            'hometown':'Quezon City',
+            'occupation':'Graduate Student',
+            'bio':'Updated bio',
+            'interests':['Artificial Intelligence','Reading']
+        })
+        self.assertEqual(updated.status_code, 200)
+        profile = updated.get_json()
+        self.assertEqual(profile['hometown'], 'Quezon City')
+        self.assertEqual(set(profile['interests']), {'Artificial Intelligence','Reading'})
+
+    def test_friend_suggestions_use_profile_similarity_and_exclude_friends(self):
+        ivy = self.client.post('/api/users', json={
+            'name':'Ivy',
+            'age_group':'18-24',
+            'hometown':'Manila',
+            'occupation':'Student',
+            'interests':['Coding','Music']
+        }).get_json()
+
+        suggestions = self.client.get(f"/api/analysis/suggestions/{ivy['id']}")
+        self.assertEqual(suggestions.status_code, 200)
+        items = suggestions.get_json()
+        self.assertTrue(items)
+        self.assertEqual(items[0]['name'], 'Anna')
+        self.assertIn('Coding', items[0]['shared_interests'])
+
+        anna_id = items[0]['id']
+        self.client.post('/api/friendships', json={
+            'user1_id':ivy['id'],
+            'user2_id':anna_id
+        })
+        after = self.client.get(f"/api/analysis/suggestions/{ivy['id']}").get_json()
+        self.assertNotIn(anna_id, {x['id'] for x in after})
+
 
 if __name__ == '__main__':
     unittest.main()
